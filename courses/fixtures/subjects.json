@@ -1,0 +1,34 @@
+[
+{
+  "model": "courses.subject",
+  "fields": {
+    "title": "Fizyka",
+    "slug": "fizyka"
+  },
+  "pk": 1
+},
+{
+  "model": "courses.subject",
+  "fields": {
+    "title": "Informatyka",
+    "slug": "informatyka"
+  },
+  "pk": 2
+},
+{
+  "model": "courses.subject",
+  "fields": {
+    "title": "Matematyka",
+    "slug": "matematyka"
+  },
+  "pk": 3
+},
+{
+  "model": "courses.subject",
+  "fields": {
+    "title": "Muzyka",
+    "slug": "muzyka"
+  },
+  "pk": 4
+}
+]
