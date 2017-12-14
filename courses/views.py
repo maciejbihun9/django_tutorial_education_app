@@ -25,7 +25,6 @@ class ManageCourseListView(ListView):
         return qs.filter(owner=self.request.user)
 
 # DOMIESZKI, CZYLI ZDEFINIOWANIE JAKIŚ DODATKOWYCH FUNKCJONLANOŚCI
-
 class OwnerMixin(object):
     def get_queryset(self):
         # coś tutaj kurwa nie działa
@@ -33,6 +32,13 @@ class OwnerMixin(object):
         return qs.filter(owner=self.request.user)
 
 class OwnerEditMixin(object):
+    # metoda form_valid nie posiada swojej funkcjonalności w tym miejscu, ona dziedziczy ją
+    # z klasy widoku. Dopiero podczas dziedziczenia ortzyma swoją moc.
+    # Jest to bardzo dziwne, bo ta klasa dziedziczy po klasie, która nie posaida żadnej
+    # funkcjonalności, ale otrzyma ją później.
+
+    # Ja bym rozważył, czy takie zastosowanie nie jest zbyt niebezpieczne.
+
     # Metoda form_valid() jest wywoływana, gdy wysłany formularz będzie prawidłowy.
     # domyśle działanie to zapisanie ModelForm oraz przekierowanie, ale
     # tutaj następuje nadpisanie, aby przypisać użykownika podczsas zapisywania obiektu
@@ -55,6 +61,7 @@ class OwnerCourseEditMixin(OwnerCourseMixin, OwnerEditMixin):
     # przekierowanie po udanym wysłaniu
     success_url = reverse_lazy('manage_course_list')
     template_name = 'courses/manage/course/form.html'
+
 
 class ManageCourseListView(OwnerCourseMixin, ListView):
     template_name = 'courses/manage/course/list.html'
