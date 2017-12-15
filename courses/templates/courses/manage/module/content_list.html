@@ -57,3 +57,47 @@ Moduł {{ module.order|add:1 }}: {{ module.title }}
     </div>
     {% endwith %}
 {% endblock %}
+{% block domready %}
+    teksty = "";
+$('#modules').sortable({
+    // Zdarzenie będzie wywoływane za każdym razem, gdy użytkownik zakończy sortowanie elementu.
+    // czyli gdy opuści element
+    stop: function(event, ui) {
+        // Tworzymy pusty słownik modules_order. Kluczami dla tego słownika będą
+        //identyfikatory modułów, natomiast wartościami — kolejność przypisana
+        //poszczególnym modułom.
+        modules_order = {};
+        $('#modules').children().each(function(){
+            // Uaktualnienie kolumny order.
+            // pobranie indeksu danego elementu w liście i jego inkrementacja, żeby nie było 0.
+            $(this).find('.order').text($(this).index() + 1);
+            // Powiązanie identyfikatora modułu z jego kolejnością.
+            modules_order[$(this).data('id')] = $(this).index();
+        });
+
+        $.ajax({
+            type: 'POST',
+            url: '{% url "module_order" %}',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json', data: JSON.stringify(modules_order)
+        });
+    }
+});
+// wykonanie tej samej akcji do elementów treści
+$('#module-contents').sortable({
+    stop: function(event, ui) {
+        contents_order = {};
+        $('#module-contents').children().each(function(){
+            // Powiązanie identyfikatora modułu z jego kolejnością.
+            contents_order[$(this).data('id')] = $(this).index();
+        });
+        $.ajax({
+            type: 'POST',
+            url: '{% url "content_order" %}',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify(contents_order),
+        });
+    }
+});
+{% endblock %}

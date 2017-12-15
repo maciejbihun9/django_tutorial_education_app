@@ -1,16 +1,5 @@
-from django.core.urlresolvers import reverse_lazy
-from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from braces.views import LoginRequiredMixin, PermissionRequiredMixin
-from django.shortcuts import redirect, get_object_or_404
-from django.views.generic.base import TemplateResponseMixin, View
-from .forms import ModuleFormSet
-from .models import Course
-from django.shortcuts import render
-from django.forms.models import modelform_factory
-from django.apps import apps
-from .models import Module, Content
-import web_pdb
+from .views_mixins import *
+from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
 
 class ManageCourseListView(ListView):
     model = Course
@@ -23,45 +12,6 @@ class ManageCourseListView(ListView):
         qs = super(ManageCourseListView, self).get_queryset()
         # zwrócenie tylko elementow dla zalogowanego użytkownika.
         return qs.filter(owner=self.request.user)
-
-# DOMIESZKI, CZYLI ZDEFINIOWANIE JAKIŚ DODATKOWYCH FUNKCJONLANOŚCI
-class OwnerMixin(object):
-    def get_queryset(self):
-        # coś tutaj kurwa nie działa
-        qs = super(OwnerMixin, self).get_queryset()
-        return qs.filter(owner=self.request.user)
-
-class OwnerEditMixin(object):
-    # metoda form_valid nie posiada swojej funkcjonalności w tym miejscu, ona dziedziczy ją
-    # z klasy widoku. Dopiero podczas dziedziczenia ortzyma swoją moc.
-    # Jest to bardzo dziwne, bo ta klasa dziedziczy po klasie, która nie posaida żadnej
-    # funkcjonalności, ale otrzyma ją później.
-
-    # Ja bym rozważył, czy takie zastosowanie nie jest zbyt niebezpieczne.
-
-    # Metoda form_valid() jest wywoływana, gdy wysłany formularz będzie prawidłowy.
-    # domyśle działanie to zapisanie ModelForm oraz przekierowanie, ale
-    # tutaj następuje nadpisanie, aby przypisać użykownika podczsas zapisywania obiektu
-    def form_valid(self, form):
-        form.instance.owner = self.request.user
-        return super(OwnerEditMixin, self).form_valid(form)
-
-# dostarczającą poniższy atrybut widokom potomnym.
-# metoda get_query_set() już tutaj jest,
-# to się wykonuje po usunięciu oraz edytowaniu, także tutaj widać przydatność!
-class OwnerCourseMixin(OwnerMixin, LoginRequiredMixin):
-    model = Course
-    fields = ['subject', 'title', 'slug', 'overview']
-    # przekierowanie pod zadany url
-    success_url = reverse_lazy('manage_course_list')
-
-class OwnerCourseEditMixin(OwnerCourseMixin, OwnerEditMixin):
-    # kolumny modelu do utworzenia formularza
-    fields = ['subject', 'title', 'slug', 'overview']
-    # przekierowanie po udanym wysłaniu
-    success_url = reverse_lazy('manage_course_list')
-    template_name = 'courses/manage/course/form.html'
-
 
 class ManageCourseListView(OwnerCourseMixin, ListView):
     template_name = 'courses/manage/course/list.html'
@@ -232,6 +182,44 @@ class ModuleContentListView(TemplateResponseMixin, View):
         # Always use render and not render_to_response
         # render to response nie posiada: user, csrf_token, and messages.
         return self.render_to_response({'module': module})
+
+
+class ModuleOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
+    """
+    * CsrfExemptMixin. Tę domieszkę zastosowaliśmy, aby uniknąć sprawdzenia pod kątem
+    tokenu CSRF w żądaniach POST. Jest to niezbędne w celu wykonywania żądań AJAX
+    POST bez konieczności generowania csrf_token.
+
+    * JsonRequestResponseMixin. Domieszka przetwarza dane żądania jako JSON,
+    serializuje odpowiedź na postać danych JSON oraz zwraca odpowiedź HTTP
+    jako typ application/json.
+    - serwer dostaj dane w formacie json i zwraca je w tym samym formacie.
+
+    Widok pobierający nową kolejność modułu podaną w formacie danych JSON.
+    Domieszki pochodzą z django-brace więc jest ważne, aby tą biblioteke zainstalować
+    """
+
+    def post(self, request):
+        # request_json posiada dane wusłane z przeglądarki w formacie json, bo
+        # metoda dispatch klasy JsonRequestResponseMixin je tam załadowała.
+        for id, order in self.request_json.items():
+            # id - klucz, order - wartośc
+            Module.objects.filter(id=id,
+                course__owner=request.user).update(order=order)
+        return self.render_json_response({'saved': 'OK'})
+
+
+class ContentOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
+    """
+    Widok do zmiany kolejności treści modułów.
+    Widok ModuleOrderView zajmuje się odpowiednim uaktualnieniem kolejności modułów.
+    """
+    def post(self, request):
+        for id, order in self.request_json.items():
+            Content.objects.filter(id=id, module__course__owner=request.user) \
+                .update(order=order)
+        return self.render_json_response({'saved': 'OK'})
+
 
 
 
