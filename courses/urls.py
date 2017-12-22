@@ -1,5 +1,7 @@
 from django.conf.urls import url
 from . import views
+from courses.views import CourseListView
+
 
 urlpatterns = [
     url(r'^mine/$',
@@ -45,5 +47,16 @@ urlpatterns = [
     url(r'^content/order/$',
         views.ContentOrderView.as_view(),
         name='content_order'),
+
+    # kursy na dany temat
+    url(r'^subject/(?P<subject>[\w-]+)/$',
+        views.CourseListView.as_view(),
+        name='course_list_subject'),
+
+    # wyświetlania ogólnego opisu pojedynczego kursu.
+    url(r'^(?P<slug>[\w-]+)/$',
+        views.CourseDetailView.as_view(),
+        name='course_detail'),
+
 
 ]

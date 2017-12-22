@@ -1,0 +1,23 @@
+
+# do foldera projektu
+ - z poziomu /mnt/c: cd Users/macbi/PycharmProjects/virtual_envs/e_learning_env/Scripts
+ - odpalanie virtual_env: source activate
+
+# do folderu projektu:
+
+ - cd /mnt/c/Users/macbi/PycharmProjects/tutorials/educa
+
+# możliwe jest, że trzeba będzie dodać to:
+
+ - PythonHome=/mnt/c/Users/macbi/PycharmProjects/virtual_envs/e_learning_env
+ - PythonHome=/mnt/c/Users/macbi
+
+# setowanie środowiska:
+
+ - set DJANGO_SETTINGS_MODULE=educa.settings.local
+
+# z poziomu foldera projektu
+uwsgi --module=educa.wsgi:application \
+--env=DJANGO_SETTINGS_MODULE=educa.settings.pro \
+--http=127.0.0.1:80 \
+--virtualenv=/mnt/c/Users/macbi/PycharmProjets/virtual_envs/e_learning_env35

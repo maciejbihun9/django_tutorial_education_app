@@ -17,11 +17,15 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from django.contrib.auth.views import login
 from django.contrib.auth.views import logout
+from courses.views import CourseListView
 
 
 urlpatterns = [
+    url(r'^api/', include('courses.api.urls', namespace='api')),
     url(r'^accounts/login/$', login, name='login'),
     url(r'^accounts/logout/$', logout, name='logout'),
     url(r'^admin/', admin.site.urls),
     url(r'^course/', include('courses.urls')),
+    url(r'^students/', include('students.urls')),
+    url(r'^$', CourseListView.as_view(), name='course_list'),
 ]

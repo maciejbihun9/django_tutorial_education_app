@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from .fields import OrderField
+from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
 
 class Subject(models.Model):
     title = models.CharField(max_length=200)
@@ -21,6 +23,12 @@ class Course(models.Model):
     slug = models.SlugField(max_length=200, unique=True)
     overview = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
+    # studenci mogą być na wielu kursach oraz kursy mogą mieć wiele studentów
+    # poprzez courses_joined można dotrzeć do tego
+    # na jakie kursy jest zapisany dany uzytkownik.
+    students = models.ManyToManyField(User,
+                                      related_name='courses_joined',
+                                      blank=True)
 
     class Meta:
         ordering = ('-created',)
@@ -68,11 +76,20 @@ class ItemBase(models.Model):
     title = models.CharField(max_length=250)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
+
     class Meta:
         abstract = True
 
     def __str__(self):
         return self.title
+
+    # dostarcza interfejs przeznaczony do generowania różnorodnej treści.
+    def render(self):
+        # celu wygenerowania szablonu, a następnie
+        # przygotowaną treść zwraca w postaci ciągu tekstowego.
+        return render_to_string('courses/content/{}.html'.format(
+            # do przygotowania odpowiedniego szablonu
+            self._meta.model_name), {'item': self})
 
 class Text(ItemBase):
     content = models.TextField()

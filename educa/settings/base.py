@@ -1,3 +1,4 @@
+# Podstawowy plik ustawień zawierający domyślne i najczęściej stosowane ustawienia.
 """
 Django settings for educa project.
 
@@ -13,13 +14,42 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import os
 from django.core.urlresolvers import reverse_lazy
 
+from django.core.urlresolvers import reverse_lazy
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-LOGIN_REDIRECT_URL = reverse_lazy('manage_course_list')
+BASE_DIR = os.path.dirname(os.path.dirname
+                           (os.path.abspath(os.path.join(__file__,os.pardir))))
+
+LOGIN_REDIRECT_URL = reverse_lazy('student_course_list')
 LOGIN_URL = reverse_lazy('login')
 LOGOUT_URL = reverse_lazy('logout')
+
+CACHE_MIDDLEWARE_ALIAS = 'default'
+CACHE_MIDDLEWARE_SECONDS = 60 * 15 # 15 minut.
+CACHE_MIDDLEWARE_KEY_PREFIX = 'educa'
+
+# projekt jest gotowy do przekazywania mu plików i udostępniania
+# ich za pomocą serwera programistycznego.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+# ustawienia cashowania
+CACHES = {
+        'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+
+# Za pomocą opcji REST_FRAMEWORK można podać określoną konfigurację dla API.
+REST_FRAMEWORK = {
+    # definiuje domyślne uprawnienia odczytu, tworzenia, uaktualniania
+    # i usuwania obiektów.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -28,8 +58,6 @@ LOGOUT_URL = reverse_lazy('logout')
 SECRET_KEY = 'pe&7g8ktv#9fc*sa*$64+l%4*+7p=sz+y7j&n1!u!-r8#*+-)r'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
@@ -37,6 +65,10 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'courses',
+    'students',
+    'embed_video',
+    'rest_framework',
+    'memcache_status',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,11 +81,16 @@ INSTALLED_APPS = [
 MIDDLEWARE_CLASSES = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # klasy, które pozwalają na cachowanie całej strony!
+    'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.cache.FetchFromCacheMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+
 ]
 
 ROOT_URLCONF = 'educa.urls'
@@ -79,13 +116,6 @@ WSGI_APPLICATION = 'educa.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
 
 
 # Password validation
@@ -125,3 +155,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+# Django. Polecenie collectstatic
+# kopiuje wszystkie pliki statyczne
+# z aplikacji i umieszcza je w
+# katalogu wskazanym przez zmienną STATIC_ROOT.
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')

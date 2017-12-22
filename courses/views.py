@@ -1,5 +1,10 @@
 from .views_mixins import *
 from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
+from django.db.models import Count
+from .models import Subject
+from django.views.generic.detail import DetailView
+from students.forms import CourseEnrollForm
+from django.core.cache import cache
 
 class ManageCourseListView(ListView):
     model = Course
@@ -220,6 +225,66 @@ class ContentOrderView(CsrfExemptMixin, JsonRequestResponseMixin, View):
                 .update(order=order)
         return self.render_json_response({'saved': 'OK'})
 
+
+class CourseListView(TemplateResponseMixin, View):
+    """
+    Widok przeznaczony do wyświetlenia ogólnego opisu kursu.
+    """
+    # to nic nie zmienia
+    model = Course
+    template_name = 'courses/course/list.html'
+
+    def get(self, request, subject=None):
+        # Pobieramy wszystkie tematy oraz całkowitą liczbę kursów dostępnych dla
+        # poszczególnych tematów.
+        # subjects = Subject.objects.annotate(total_courses=Count('courses'))
+
+        # rozwiązanie z cachowaniem
+        subjects = cache.get('subjects')
+        if not subjects:
+            subjects = Subject.objects.annotate(
+                total_courses=Count('courses'))
+            cache.set('subjects', subjects)
+
+
+        # Pobieramy wszystkie dostępne, ale nie jest
+        #  wykonana dopóki nie wystapi taka konieczność
+        # kursy oraz całkowitą liczbę modułów znajdujących
+        # się w poszczególnych kursach.
+        all_courses = Course.objects.annotate(
+            total_modules=Count('modules'))
+        # jeśli posiadamy subject to pobierz moduły z nim związane
+        if subject:
+            subject = get_object_or_404(Subject, slug=subject)
+            # tworzenie klucza w zależności od id
+            key = 'subject_{}_courses'.format(subject.id)
+            courses = cache.get(key)
+            if not courses:
+                # pobieranie kursów dla podanego przedmiotu
+                courses = all_courses.filter(subject=subject)
+                cache.set(key, courses)
+        else:
+            courses = cache.get('all_courses')
+            if not courses:
+                courses = all_courses
+                cache.set('all_courses', courses)
+        # wygenerowania obiektów w szablonie i udzielenia odpowiedzi HTTP.
+        return self.render_to_response({'subjects': subjects,
+                                        'subject': subject, 'courses': courses})
+
+class CourseDetailView(DetailView):
+    model = Course
+    template_name = 'courses/course/detail.html'
+
+    def get_context_data(self, **kwargs):
+        """
+        do umieszczenia formularza zapisu na kurs w kontekście
+        dla generowanego szablonu.
+        """
+
+        context = super(CourseDetailView,self).get_context_data(**kwargs)
+        context['enroll_form'] = CourseEnrollForm(initial={'course' : self.object})
+        return context
 
 
 
